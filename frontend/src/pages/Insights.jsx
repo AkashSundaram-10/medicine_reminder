@@ -6,6 +6,7 @@ import * as api from '../services/api';
 export default function Insights() {
   const [insights, setInsights] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const loadInsights = async () => {
@@ -13,7 +14,7 @@ export default function Insights() {
         const data = await api.getInsights();
         setInsights(data);
       } catch (error) {
-        console.error("Failed to load insights", error);
+        setError(error.message);
       } finally {
         setIsLoading(false);
       }
@@ -58,6 +59,12 @@ export default function Insights() {
           AI Analysis Active
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-medium text-amber-800">
+          {error}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="p-12 text-center text-slate-500 font-medium">Analyzing health data...</div>

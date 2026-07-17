@@ -6,10 +6,16 @@ export default function History() {
   const [searchQuery, setSearchQuery] = useState('');
   const [history, setHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   
-  const [currentDate, setCurrentDate] = useState(new Date('2026-07-15'));
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  const formatDate = (date) => date.toISOString().split('T')[0];
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const changeDate = (days) => {
     const newDate = new Date(currentDate);
@@ -19,11 +25,12 @@ export default function History() {
 
   const loadHistory = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const data = await api.getHistory();
       setHistory(data);
     } catch (error) {
-      console.error("Failed to fetch history:", error);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -91,6 +98,12 @@ export default function History() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-medium text-amber-800">
+          {error}
+        </div>
+      )}
 
       <div className="glass-card rounded-3xl sm:rounded-[2rem] overflow-hidden">
         

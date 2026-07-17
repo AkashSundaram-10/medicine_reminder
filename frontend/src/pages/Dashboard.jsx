@@ -5,13 +5,19 @@ import * as api from '../services/api';
 export default function Dashboard() {
   const [dashboardData, setDashboardData] = useState({ medicines: [], totalScheduled: 0, taken: 0, pending: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
   
-  const [currentDate, setCurrentDate] = useState(new Date('2026-07-15'));
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  const formatDate = (date) => date.toISOString().split('T')[0];
+  const formatDate = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   const getDisplayDate = (date) => {
-    const today = new Date('2026-07-15');
+    const today = new Date();
     const diff = Math.round((date - today) / (1000 * 60 * 60 * 24));
     
     if (diff === 0) return "Today's Schedule";
@@ -29,11 +35,12 @@ export default function Dashboard() {
 
   const loadData = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const data = await api.getDashboardData(formatDate(currentDate));
       setDashboardData(data);
     } catch (error) {
-      console.error("Failed to load dashboard data", error);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -83,6 +90,12 @@ export default function Dashboard() {
           <p className="text-lg sm:text-xl text-slate-500 mt-2 sm:mt-3 font-medium">Your health journey is looking great today.</p>
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-medium text-amber-800">
+          {error}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 md:gap-8">
         {stats.map((stat, i) => (

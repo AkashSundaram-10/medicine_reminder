@@ -41,16 +41,61 @@ export const calculateInsights = async () => {
   // Real implementation would parse Date objects
   const nextMedicine = history.find(m => !m.taken) || null;
 
-  // Generate Recommendation
-  let recommendation = '';
+  // Determine rule-based fallback recommendation
+  let ruleRecommendation = '';
   if (adherence < 70) {
-    recommendation = "Your adherence is low. Try improving your reminder frequency or linking your medication to daily habits.";
+    ruleRecommendation = "Your adherence is low. Try improving your reminder frequency or linking your medication to daily habits.";
   } else if (mostMissedTime !== 'N/A' && mostMissedTime.includes('PM')) {
-    recommendation = "Try taking medicines immediately after dinner. Night time routines can help improve consistency.";
+    ruleRecommendation = "Try taking medicines immediately after dinner. Night time routines can help improve consistency.";
   } else if (adherence > 90) {
-    recommendation = "Excellent consistency! Keep up the great work in managing your health.";
+    ruleRecommendation = "Excellent consistency! Keep up the great work in managing your health.";
   } else {
-    recommendation = "You're doing well. Keep tracking your medicines to maintain good health.";
+    ruleRecommendation = "You're doing well. Keep tracking your medicines to maintain good health.";
+  }
+
+  let recommendation = ruleRecommendation;
+  let aiSummary = null;
+  let aiPattern = null;
+  let aiRiskLevel = adherence < 70 ? 'High' : adherence < 85 ? 'Moderate' : 'Low';
+
+  // Try calling local Ollama (Llama 3.2) AI engine
+  try {
+    const prompt = `You are a medical adherence assistant. Analyze this patient's medication data:
+- Total Scheduled Doses: ${total}
+- Taken Doses: ${taken}
+- Missed Doses: ${missedCount}
+- Adherence Rate: ${adherence}%
+- Most Missed Time: ${mostMissedTime}
+
+Generate a short JSON response with keys: "summary", "pattern", "recommendation", "riskLevel". Keep it concise and professional.`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 sec timeout
+
+    const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'llama3.2',
+        prompt,
+        stream: false,
+        format: 'json'
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (ollamaResponse.ok) {
+      const data = await ollamaResponse.json();
+      const parsed = JSON.parse(data.response);
+      if (parsed.recommendation) recommendation = parsed.recommendation;
+      if (parsed.summary) aiSummary = parsed.summary;
+      if (parsed.pattern) aiPattern = parsed.pattern;
+      if (parsed.riskLevel) aiRiskLevel = parsed.riskLevel;
+    }
+  } catch (err) {
+    // Fallback to calculated rules if Ollama is offline or times out
   }
 
   return {
@@ -58,6 +103,10 @@ export const calculateInsights = async () => {
     missedCount,
     nextMedicine,
     mostMissedTime,
-    recommendation
+    recommendation,
+    summary: aiSummary || `Patient adherence stands at ${adherence}%.`,
+    pattern: aiPattern || (mostMissedTime !== 'N/A' ? `Doses frequently missed around ${mostMissedTime}.` : 'No distinct missed pattern detected.'),
+    riskLevel: aiRiskLevel
   };
 };
+

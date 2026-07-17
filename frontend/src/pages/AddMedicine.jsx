@@ -1,21 +1,64 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Pill, Clock, Calendar as CalendarIcon, Save } from 'lucide-react';
 import * as api from '../services/api';
 
+const getLocalDate = () => {
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export default function AddMedicine() {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const isEditing = Boolean(id);
   const [formData, setFormData] = useState({
     name: '',
     dosage: '',
     type: 'Tablet',
-    date: '2026-07-16',
+    date: getLocalDate(),
   });
 
   // Custom Time State
   const [timeHour, setTimeHour] = useState('08');
   const [timeMinute, setTimeMinute] = useState('00');
   const [timePeriod, setTimePeriod] = useState('AM');
+
+  useEffect(() => {
+    if (!isEditing) return;
+
+    const loadMedicine = async () => {
+      try {
+        const medicines = await api.getMedicines();
+        const medicine = medicines.find(item => item.id === id);
+        if (!medicine) {
+          navigate('/medicines', { replace: true });
+          return;
+        }
+
+        setFormData({
+          name: medicine.medicineName || medicine.name || '',
+          dosage: medicine.dosage || '',
+          type: medicine.type || 'Tablet',
+          date: medicine.date || getLocalDate(),
+        });
+
+        const match = (medicine.time || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+        if (match) {
+          setTimeHour(match[1].padStart(2, '0'));
+          setTimeMinute(match[2]);
+          setTimePeriod(match[3].toUpperCase());
+        }
+      } catch (error) {
+        console.error('Failed to load medicine:', error);
+      }
+    };
+
+    loadMedicine();
+  }, [id, isEditing, navigate]);
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -29,8 +72,12 @@ export default function AddMedicine() {
     const payload = { ...formData, time: finalTime };
 
     try {
-      await api.createMedicine(payload);
-      alert(`Successfully scheduled ${formData.name} for ${finalTime}!`);
+      if (isEditing) {
+        await api.updateMedicine(id, payload);
+      } else {
+        await api.createMedicine(payload);
+      }
+      alert(isEditing ? `Updated ${formData.name}.` : `Successfully scheduled ${formData.name} for ${finalTime}!`);
       navigate('/medicines');
     } catch (error) {
       console.error("Failed to save new medicine:", error);
@@ -49,8 +96,8 @@ export default function AddMedicine() {
           <ArrowLeft className="w-6 h-6" />
         </button>
         <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">Add New Medicine</h1>
-          <p className="text-slate-500 mt-1 font-medium">Create a new medication schedule.</p>
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">{isEditing ? 'Edit Medicine' : 'Add New Medicine'}</h1>
+          <p className="text-slate-500 mt-1 font-medium">{isEditing ? 'Update this medication schedule.' : 'Create a new medication schedule.'}</p>
         </div>
       </div>
 
@@ -204,7 +251,7 @@ export default function AddMedicine() {
               className="w-full flex items-center justify-center gap-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-5 rounded-2xl font-bold text-xl transition-all duration-300 shadow-xl shadow-blue-500/30 hover:shadow-blue-500/50 hover:-translate-y-1"
             >
               <Save className="w-6 h-6" />
-              Save Medication
+              {isEditing ? 'Update Medication' : 'Save Medication'}
             </button>
           </div>
 

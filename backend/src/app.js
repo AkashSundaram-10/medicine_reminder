@@ -3,6 +3,7 @@ import cors from 'cors';
 import medicineRoutes from './routes/medicine.routes.js';
 import dashboardRoutes from './routes/dashboard.routes.js';
 import insightRoutes from './routes/insight.routes.js';
+import deviceRoutes from './routes/device.routes.js';
 
 const app = express();
 
@@ -13,5 +14,6 @@ app.use(express.json());
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/insights', insightRoutes);
+app.use('/api/device', deviceRoutes);
 
 export default app;

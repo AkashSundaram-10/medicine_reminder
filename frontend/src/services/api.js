@@ -1,54 +1,64 @@
-const API_URL = 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+const request = async (path, options, fallbackMessage) => {
+  let response;
+  try {
+    response = await fetch(`${API_URL}${path}`, options);
+  } catch {
+    throw new Error('Cannot reach the backend. Start it on http://localhost:5000 and try again.');
+  }
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(payload?.error || fallbackMessage);
+  }
+
+  return payload;
+};
 
 export const getDashboardData = async (date) => {
-  const url = date ? `${API_URL}/dashboard?date=${date}` : `${API_URL}/dashboard`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error('Failed to fetch dashboard data');
-  return res.json();
+  const query = date ? `?date=${date}` : '';
+  return request(`/dashboard${query}`, undefined, 'Failed to fetch dashboard data');
 };
 
 export const getHistory = async () => {
-  const res = await fetch(`${API_URL}/medicines`);
-  if (!res.ok) throw new Error('Failed to fetch history');
-  return res.json();
+  return request('/medicines', undefined, 'Failed to fetch history');
 };
 
 export const getInsights = async () => {
-  const res = await fetch(`${API_URL}/insights`);
-  if (!res.ok) throw new Error('Failed to fetch insights');
-  return res.json();
+  return request('/insights', undefined, 'Failed to fetch insights');
 };
 
 export const updateMedicineStatus = async (id, newStatus) => {
-  const res = await fetch(`${API_URL}/medicines/${id}`, {
+  return request(`/medicines/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ taken: newStatus === 'Taken' })
-  });
-  if (!res.ok) throw new Error('Failed to update status');
-  return res.json();
+  }, 'Failed to update status');
 };
 
 export const getMedicines = async () => {
-  const res = await fetch(`${API_URL}/medicines`);
-  if (!res.ok) throw new Error('Failed to fetch medicines');
-  return res.json();
+  return request('/medicines', undefined, 'Failed to fetch medicines');
 };
 
 export const createMedicine = async (medicineData) => {
-  const res = await fetch(`${API_URL}/medicines`, {
+  return request('/medicines', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(medicineData)
-  });
-  if (!res.ok) throw new Error('Failed to create medicine');
-  return res.json();
+  }, 'Failed to create medicine');
+};
+
+export const updateMedicine = async (id, medicineData) => {
+  return request(`/medicines/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(medicineData)
+  }, 'Failed to update medicine');
 };
 
 export const deleteMedicine = async (id) => {
-  const res = await fetch(`${API_URL}/medicines/${id}`, {
+  return request(`/medicines/${id}`, {
     method: 'DELETE'
-  });
-  if (!res.ok) throw new Error('Failed to delete medicine');
-  return res.json();
+  }, 'Failed to delete medicine');
 };

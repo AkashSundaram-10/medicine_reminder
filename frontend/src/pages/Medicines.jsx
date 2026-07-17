@@ -7,14 +7,16 @@ export default function Medicines() {
   const navigate = useNavigate();
   const [medicines, setMedicines] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const loadMedicines = async () => {
     setIsLoading(true);
+    setError('');
     try {
       const data = await api.getMedicines();
       setMedicines(data);
     } catch (error) {
-      console.error("Failed to load medicines", error);
+      setError(error.message);
     } finally {
       setIsLoading(false);
     }
@@ -36,8 +38,8 @@ export default function Medicines() {
     }
   };
 
-  const handleEdit = () => {
-    alert("Edit form would open here!");
+  const handleEdit = (id) => {
+    navigate(`/medicines/${id}/edit`);
   };
 
   return (
@@ -55,6 +57,12 @@ export default function Medicines() {
         </button>
       </div>
 
+      {error && (
+        <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 font-medium text-amber-800">
+          {error}
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-center p-12 text-slate-500 font-medium">Loading medicines from backend...</div>
       ) : (
@@ -69,7 +77,7 @@ export default function Medicines() {
                 </div>
                 <div className="flex gap-2 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-10 relative">
                   <button 
-                    onClick={handleEdit}
+                    onClick={() => handleEdit(med.id)}
                     className="p-2.5 sm:p-3 bg-white hover:bg-indigo-50 text-indigo-600 rounded-lg sm:rounded-xl shadow-sm border border-indigo-100 transition-colors">
                     <Edit2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </button>
