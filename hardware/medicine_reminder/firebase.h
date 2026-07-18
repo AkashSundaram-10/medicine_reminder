@@ -1,8 +1,10 @@
 #ifndef FIREBASE_SETUP_H
 #define FIREBASE_SETUP_H
 
+#include <WiFi.h>
 #include <HTTPClient.h>
 #include "config.h"
+#include "buzzer.h"
 
 void checkMedicines() {
   if (WiFi.status() == WL_CONNECTED) {
@@ -26,6 +28,13 @@ void checkMedicines() {
     
     if (httpResponseCode > 0) {
       String payload = http.getString();
+      Serial.print("Checking Date: ");
+      Serial.print(dateStringBuff);
+      Serial.print(" | Time: ");
+      Serial.print(timeStringBuff);
+      Serial.print(" => Response: ");
+      Serial.println(payload);
+
       if (payload.indexOf("\"due\":true") >= 0) {
         Serial.println("TIME TO TAKE MEDICINE!");
         triggerAlarm();

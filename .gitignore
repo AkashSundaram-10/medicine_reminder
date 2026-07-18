@@ -11,6 +11,9 @@ FIREBASE_SERVICE_ACCOUNT_JSON
 *firebase-key*.json
 *service-account*.json
 *.pem
+config.h
+**/config.h
+!**/config.example.h
 
 # Build outputs
 dist/

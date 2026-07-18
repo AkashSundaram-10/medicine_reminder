@@ -215,8 +215,8 @@ export default function AddMedicine() {
                       onChange={(e) => setTimeMinute(e.target.value)}
                       className="w-full pl-4 pr-8 py-2 bg-transparent text-center focus:outline-none font-bold text-xl text-slate-800 appearance-none cursor-pointer"
                     >
-                      {Array.from({length: 12}, (_, i) => {
-                        const min = (i * 5).toString().padStart(2, '0'); // Increments of 5 mins
+                      {Array.from({length: 60}, (_, i) => {
+                        const min = i.toString().padStart(2, '0'); // Every single minute (00 - 59)
                         return <option key={min} value={min}>{min}</option>;
                       })}
                     </select>

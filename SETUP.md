@@ -92,8 +92,10 @@ Node.js calculates raw adherence statistics (total, taken, missed, adherence rat
 
 ## 🔌 Step 5: ESP32 Hardware Wiring & Flashing
 
+*(For complete pinout tables and wiring diagrams, see [HARDWARE_SETUP.md](file:///d:/smart%20medicine/medicine_reminder/hardware/HARDWARE_SETUP.md))*
+
 ### 1. Hardware Connections
-- **Active Buzzer VCC / (+) Pin** -> ESP32 **GPIO 25**
+- **Active Buzzer VCC / (+) Pin** -> ESP32 **GPIO 2**
 - **Active Buzzer GND / (-) Pin** -> ESP32 **GND**
 
 ### 2. Configure Firmware
