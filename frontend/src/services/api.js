@@ -29,11 +29,16 @@ export const getInsights = async () => {
   return request('/insights', undefined, 'Failed to fetch insights');
 };
 
-export const updateMedicineStatus = async (id, newStatus) => {
+export const getAIoTWarnings = async (date) => {
+  const query = date ? `?date=${date}` : '';
+  return request(`/aiot/warnings${query}`, undefined, 'Failed to fetch AIoT warnings');
+};
+
+export const updateMedicineStatus = async (id, newStatus, actionDate) => {
   return request(`/medicines/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ taken: newStatus === 'Taken' })
+    body: JSON.stringify({ taken: newStatus === 'Taken', actionDate })
   }, 'Failed to update status');
 };
 

@@ -1,5 +1,12 @@
 import { getAllMedicines } from './medicine.service.js';
 
+const getLocalDate = (d = new Date()) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const calculateInsights = async () => {
   const history = await getAllMedicines();
   
@@ -10,36 +17,71 @@ export const calculateInsights = async () => {
       nextMedicine: null,
       mostMissedTime: 'N/A',
       recommendation: 'No medicine history available yet.',
+      summary: 'No data available',
+      pattern: 'No patterns detected',
+      riskLevel: 'Low',
+      calendarData: []
     };
   }
 
-  const total = history.length;
-  const taken = history.filter(item => item.taken === true).length;
-  const missedCount = total - taken;
+  const todayStr = getLocalDate();
   
-  const adherence = Math.round((taken / total) * 100);
+  // Calculate stats based on past and present days only
+  let totalScheduled = 0;
+  let totalTaken = 0;
+  const missedTimesCounts = {};
 
-  // Find most missed time
-  const missedItems = history.filter(item => item.taken === false);
-  const missedTimes = missedItems.map(item => item.time);
-  
-  let mostMissedTime = 'N/A';
-  if (missedTimes.length > 0) {
-    const counts = {};
-    let maxCount = 0;
+  const calendarData = [];
+
+  // Generate last 35 days
+  for (let i = 34; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = getLocalDate(d);
     
-    missedTimes.forEach(time => {
-      counts[time] = (counts[time] || 0) + 1;
-      if (counts[time] > maxCount) {
-        maxCount = counts[time];
-        mostMissedTime = time;
+    // Find medicines scheduled for this date
+    const scheduledMeds = history.filter(med => {
+      const start = med.date;
+      const end = med.endDate || med.date;
+      return dateStr >= start && dateStr <= end;
+    });
+
+    if (scheduledMeds.length === 0) {
+      calendarData.push({ day: d.getDate(), dateStr, status: 'empty' });
+      continue;
+    }
+
+    let takenCount = 0;
+    scheduledMeds.forEach(med => {
+      totalScheduled++;
+      const isTaken = med.takenDates && med.takenDates.includes(dateStr);
+      if (isTaken) {
+        takenCount++;
+        totalTaken++;
+      } else {
+        missedTimesCounts[med.time] = (missedTimesCounts[med.time] || 0) + 1;
       }
     });
+
+    let status = 'empty';
+    if (takenCount === scheduledMeds.length) status = 'perfect';
+    else if (takenCount > 0) status = 'partial';
+    else status = 'missed';
+
+    calendarData.push({ day: d.getDate(), dateStr, status });
   }
 
-  // Find next medicine (simplistic approach based on current time)
-  // Real implementation would parse Date objects
-  const nextMedicine = history.find(m => !m.taken) || null;
+  const missedCount = totalScheduled - totalTaken;
+  const adherence = totalScheduled > 0 ? Math.round((totalTaken / totalScheduled) * 100) : 0;
+
+  let mostMissedTime = 'N/A';
+  let maxMissed = 0;
+  for (const [time, count] of Object.entries(missedTimesCounts)) {
+    if (count > maxMissed) {
+      maxMissed = count;
+      mostMissedTime = time;
+    }
+  }
 
   // Determine rule-based fallback recommendation
   let ruleRecommendation = '';
@@ -53,60 +95,15 @@ export const calculateInsights = async () => {
     ruleRecommendation = "You're doing well. Keep tracking your medicines to maintain good health.";
   }
 
-  let recommendation = ruleRecommendation;
-  let aiSummary = null;
-  let aiPattern = null;
-  let aiRiskLevel = adherence < 70 ? 'High' : adherence < 85 ? 'Moderate' : 'Low';
-
-  // Try calling local Ollama (Llama 3.2) AI engine
-  try {
-    const prompt = `You are a medical adherence assistant. Analyze this patient's medication data:
-- Total Scheduled Doses: ${total}
-- Taken Doses: ${taken}
-- Missed Doses: ${missedCount}
-- Adherence Rate: ${adherence}%
-- Most Missed Time: ${mostMissedTime}
-
-Generate a short JSON response with keys: "summary", "pattern", "recommendation", "riskLevel". Keep it concise and professional.`;
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 sec timeout
-
-    const ollamaResponse = await fetch('http://localhost:11434/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'llama3.2',
-        prompt,
-        stream: false,
-        format: 'json'
-      }),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    if (ollamaResponse.ok) {
-      const data = await ollamaResponse.json();
-      const parsed = JSON.parse(data.response);
-      if (parsed.recommendation) recommendation = parsed.recommendation;
-      if (parsed.summary) aiSummary = parsed.summary;
-      if (parsed.pattern) aiPattern = parsed.pattern;
-      if (parsed.riskLevel) aiRiskLevel = parsed.riskLevel;
-    }
-  } catch (err) {
-    // Fallback to calculated rules if Ollama is offline or times out
-  }
-
   return {
     adherence,
     missedCount,
-    nextMedicine,
     mostMissedTime,
-    recommendation,
-    summary: aiSummary || `Patient adherence stands at ${adherence}%.`,
-    pattern: aiPattern || (mostMissedTime !== 'N/A' ? `Doses frequently missed around ${mostMissedTime}.` : 'No distinct missed pattern detected.'),
-    riskLevel: aiRiskLevel
+    recommendation: ruleRecommendation,
+    summary: `Patient adherence stands at ${adherence}%.`,
+    pattern: mostMissedTime !== 'N/A' ? `Doses frequently missed around ${mostMissedTime}.` : 'No distinct missed pattern detected.',
+    riskLevel: adherence < 70 ? 'High' : adherence < 85 ? 'Moderate' : 'Low',
+    calendarData
   };
 };
 

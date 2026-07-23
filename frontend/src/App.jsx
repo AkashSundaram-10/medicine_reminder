@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import ReminderAlert from './components/ReminderAlert';
 import Dashboard from './pages/Dashboard';
 import Medicines from './pages/Medicines';
 import AddMedicine from './pages/AddMedicine';
@@ -10,6 +11,7 @@ function App() {
   return (
     <Router>
       <div className="min-h-screen flex flex-col bg-slate-50">
+        <ReminderAlert />
         <Navbar />
         <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl">
           <Routes>

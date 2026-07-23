@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-import { Lightbulb, AlertTriangle, TrendingUp, Target, Sparkles, Calendar as CalendarIcon, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { Lightbulb, AlertTriangle, TrendingUp, Target, Sparkles, Calendar as CalendarIcon, CheckCircle2, XCircle, AlertCircle, Activity, BrainCircuit } from 'lucide-react';
 import * as api from '../services/api';
 
 export default function Insights() {
@@ -27,23 +27,7 @@ export default function Insights() {
     { name: 'Missed', value: 100 - insights.adherence, color: '#e2e8f0' },
   ] : [];
 
-  // Generate placeholder data for a 35-day calendar grid (5 weeks)
-  const generateCalendarData = () => {
-    return Array.from({ length: 35 }, (_, i) => {
-      const day = i + 1 - 3;
-      if (day <= 0 || day > 31) return { day: null, status: 'empty' };
-      
-      let status = 'perfect'; 
-      if (day === 14 || day === 28) status = 'missed'; 
-      else if (day === 12 || day === 18 || day === 22) status = 'partial'; 
-      else if (day > 15 && day !== 28 && day !== 22 && day !== 18) status = 'perfect';
-      else if (day > 31) status = 'empty';
-      
-      return { day, status };
-    });
-  };
-
-  const calendarData = generateCalendarData();
+  const calendarData = insights?.calendarData || [];
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
@@ -56,7 +40,7 @@ export default function Insights() {
         </div>
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 sm:px-6 py-3 rounded-xl sm:rounded-2xl text-base sm:text-lg font-bold shadow-lg shadow-blue-500/30 flex items-center justify-center gap-2 sm:gap-3 animate-pulse">
           <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-300" />
-          AI Analysis Active
+          Live Data Active
         </div>
       </div>
 
@@ -137,16 +121,17 @@ export default function Insights() {
           <div className="glass-card p-6 sm:p-10 rounded-3xl sm:rounded-[2.5rem] relative overflow-hidden">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
               <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 flex items-center gap-3">
-                <CalendarIcon className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-600" /> Adherence Calendar
+                <CalendarIcon className="w-7 h-7 sm:w-8 sm:h-8 text-indigo-600" /> Past 35 Days Adherence
               </h2>
-              <div className="flex gap-4 text-xs sm:text-sm font-bold bg-white/50 px-4 py-2 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> All Taken</div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-amber-400"></div> Partial</div>
-                <div className="flex items-center gap-1.5"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Missed</div>
+              <div className="flex flex-wrap gap-4 text-xs sm:text-sm font-bold bg-slate-50 px-4 py-3 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-emerald-500"></div> Perfect</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-amber-400"></div> Partial</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-rose-500"></div> Missed</div>
+                <div className="flex items-center gap-2"><div className="w-3 h-3 rounded-full bg-slate-200"></div> None Scheduled</div>
               </div>
             </div>
 
-            <div className="overflow-x-auto pb-4">
+            <div className="overflow-x-auto pb-4 no-scrollbar">
               <div className="min-w-[500px]">
                 <div className="grid grid-cols-7 gap-2 sm:gap-4 mb-2 sm:mb-4">
                   {weekDays.map((day, i) => (
@@ -155,32 +140,46 @@ export default function Insights() {
                 </div>
                 
                 <div className="grid grid-cols-7 gap-2 sm:gap-4">
+                  {/* Empty leading days based on the first day in calendar data to align correctly */}
+                  {calendarData.length > 0 && Array.from({ length: new Date(calendarData[0].dateStr).getDay() }).map((_, i) => (
+                    <div key={`empty-lead-${i}`} className="w-full aspect-square rounded-xl sm:rounded-2xl bg-slate-50/30 border border-slate-100 border-dashed"></div>
+                  ))}
+                  
                   {calendarData.map((cell, i) => (
-                    <div key={i} className="aspect-square">
-                      {cell.day ? (
-                        <div className={`w-full h-full rounded-xl sm:rounded-2xl flex flex-col items-center justify-center relative group cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-lg hover:z-10
-                          ${cell.status === 'perfect' ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 shadow-emerald-500/20' : 
-                            cell.status === 'partial' ? 'bg-amber-100 text-amber-700 hover:bg-amber-200 shadow-amber-500/20' : 
-                            cell.status === 'missed' ? 'bg-rose-100 text-rose-700 hover:bg-rose-200 shadow-rose-500/20' : 
-                            'bg-slate-50 text-slate-400'}
-                        `}>
-                          <span className="text-lg sm:text-xl font-bold">{cell.day}</span>
-                          
-                          <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 -top-12 bg-slate-900 text-white text-xs px-3 py-1.5 rounded-lg whitespace-nowrap pointer-events-none z-20">
+                    <div key={i} className="aspect-square relative group">
+                      <div className={`w-full h-full rounded-xl sm:rounded-2xl flex flex-col items-center justify-center relative cursor-pointer transition-all duration-300 hover:scale-110 hover:shadow-xl hover:z-10 border-2
+                        ${cell.status === 'perfect' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100 hover:border-emerald-300 shadow-emerald-500/20' : 
+                          cell.status === 'partial' ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100 hover:border-amber-300 shadow-amber-500/20' : 
+                          cell.status === 'missed' ? 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100 hover:border-rose-300 shadow-rose-500/20' : 
+                          'bg-slate-50 text-slate-400 border-transparent hover:border-slate-300'}
+                      `}>
+                        <span className={`text-[10px] sm:text-xs uppercase font-bold tracking-widest leading-none mb-1 ${cell.status === 'empty' ? 'opacity-40' : 'opacity-80'}`}>
+                          {new Date(cell.dateStr + 'T12:00:00').toLocaleDateString('en-US', { month: 'short' })}
+                        </span>
+                        <span className={`text-xl sm:text-3xl font-black leading-none ${cell.status === 'empty' ? 'opacity-40' : ''}`}>
+                          {cell.day}
+                        </span>
+                        
+                        {/* Custom Tooltip */}
+                        <div className="absolute opacity-0 group-hover:opacity-100 transition-opacity duration-200 bottom-full mb-3 bg-slate-900 text-white text-xs px-4 py-2 rounded-xl whitespace-nowrap pointer-events-none z-20 shadow-xl border border-slate-700 flex flex-col items-center gap-1">
+                          <span className="font-bold text-slate-300">
+                            {new Date(cell.dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                          </span>
+                          <span className="font-medium text-[10px] uppercase tracking-wider text-slate-400">
                             {cell.status === 'perfect' ? '100% Taken' : 
                              cell.status === 'partial' ? 'Partially Missed' : 
-                             cell.status === 'missed' ? 'All Missed' : 'No Data'}
-                          </div>
-
-                          <div className="absolute bottom-1 sm:bottom-2">
-                            {cell.status === 'perfect' && <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-500" />}
-                            {cell.status === 'partial' && <AlertCircle className="w-3 h-3 sm:w-4 sm:h-4 text-amber-500" />}
-                            {cell.status === 'missed' && <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-rose-500" />}
-                          </div>
+                             cell.status === 'missed' ? 'All Missed' : 'No Medicine Scheduled'}
+                          </span>
+                          {/* Triangle pointer */}
+                          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-900 rotate-45 border-r border-b border-slate-700"></div>
                         </div>
-                      ) : (
-                        <div className="w-full h-full rounded-xl sm:rounded-2xl bg-transparent"></div>
-                      )}
+
+                        <div className="absolute bottom-1 sm:bottom-2">
+                          {cell.status === 'perfect' && <CheckCircle2 className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-500 fill-emerald-100 drop-shadow-sm" />}
+                          {cell.status === 'partial' && <AlertCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 fill-amber-100 drop-shadow-sm" />}
+                          {cell.status === 'missed' && <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-rose-500 fill-rose-100 drop-shadow-sm" />}
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -188,17 +187,45 @@ export default function Insights() {
             </div>
           </div>
 
-          <div className="bg-gradient-to-br from-indigo-900 via-blue-900 to-slate-900 p-8 sm:p-10 rounded-3xl sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden">
-            <div className="absolute -top-10 -right-10 opacity-20 hover:opacity-30 transition-opacity animate-pulse">
-              <Lightbulb className="w-48 h-48 sm:w-64 sm:h-64 text-yellow-300" />
-            </div>
-            <div className="relative z-10 flex flex-col md:flex-row gap-6 sm:gap-8 items-start md:items-center">
-              <div className="bg-white/10 p-5 sm:p-6 rounded-2xl sm:rounded-3xl backdrop-blur-md border border-white/20 shrink-0">
-                <Lightbulb className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-400" />
+          <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-indigo-900 p-8 sm:p-10 rounded-3xl sm:rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+            {/* Background design */}
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-indigo-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-8 flex items-center gap-3 relative z-10">
+              <BrainCircuit className="w-7 h-7 text-indigo-400" /> Deep Health Analysis
+            </h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-indigo-500/20 p-2.5 rounded-xl text-indigo-400"><Activity className="w-5 h-5" /></div>
+                  <h3 className="text-indigo-200 font-bold text-sm uppercase tracking-widest">Adherence Pattern</h3>
+                </div>
+                <p className="text-lg text-slate-300 leading-relaxed font-medium">
+                  {insights.pattern}
+                </p>
               </div>
-              <div>
-                <h3 className="text-indigo-200 font-bold text-lg sm:text-xl uppercase tracking-wider mb-2">Insight Recommendation</h3>
-                <p className="text-xl sm:text-2xl md:text-3xl text-white font-medium leading-snug">
+
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 p-6 rounded-3xl hover:bg-white/10 transition-colors">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-amber-500/20 p-2.5 rounded-xl text-amber-400"><AlertTriangle className="w-5 h-5" /></div>
+                  <h3 className="text-amber-200 font-bold text-sm uppercase tracking-widest">Risk Level</h3>
+                </div>
+                <div className="flex items-baseline gap-3">
+                  <span className={`text-4xl font-black ${insights.riskLevel === 'High' ? 'text-rose-500' : insights.riskLevel === 'Moderate' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                    {insights.riskLevel}
+                  </span>
+                  <span className="text-slate-400 font-medium">Risk of Non-Compliance</span>
+                </div>
+              </div>
+
+              <div className="md:col-span-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 backdrop-blur-md border border-indigo-500/20 p-6 sm:p-8 rounded-3xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="bg-yellow-500/20 p-2.5 rounded-xl text-yellow-400"><Lightbulb className="w-5 h-5" /></div>
+                  <h3 className="text-yellow-200 font-bold text-sm uppercase tracking-widest">Primary Recommendation</h3>
+                </div>
+                <p className="text-xl sm:text-2xl text-white font-medium leading-snug">
                   "{insights.recommendation}"
                 </p>
               </div>

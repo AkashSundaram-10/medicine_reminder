@@ -20,6 +20,7 @@ export default function AddMedicine() {
     dosage: '',
     type: 'Tablet',
     date: getLocalDate(),
+    endDate: getLocalDate(),
   });
 
   // Custom Time State
@@ -44,6 +45,7 @@ export default function AddMedicine() {
           dosage: medicine.dosage || '',
           type: medicine.type || 'Tablet',
           date: medicine.date || getLocalDate(),
+          endDate: medicine.endDate || medicine.date || getLocalDate(),
         });
 
         const match = (medicine.time || '').match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
@@ -180,6 +182,21 @@ export default function AddMedicine() {
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
+                  className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-700 cursor-pointer"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-bold text-slate-600 uppercase tracking-wider flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4" /> End Date
+                </label>
+                <input 
+                  required
+                  type="date" 
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleChange}
+                  min={formData.date}
                   className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-700 cursor-pointer"
                 />
               </div>

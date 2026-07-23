@@ -10,8 +10,17 @@ export const getAllMedicines = async () => {
 
 export const getMedicinesByDate = async (date) => {
   const collection = getCollection();
-  const snapshot = await collection.where('date', '==', date).get();
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  const snapshot = await collection.get();
+  return snapshot.docs
+    .map(doc => ({ id: doc.id, ...doc.data() }))
+    .filter(med => {
+      if (!med.endDate) return med.date === date;
+      return date >= med.date && date <= med.endDate;
+    })
+    .map(med => ({
+      ...med,
+      taken: med.takenDates ? med.takenDates.includes(date) : (med.taken || false)
+    }));
 };
 
 export const createMedicine = async (data) => {
@@ -21,8 +30,9 @@ export const createMedicine = async (data) => {
     dosage: data.dosage,
     type: data.type || 'Tablet',
     date: data.date,
+    endDate: data.endDate || data.date,
     time: data.time,
-    taken: false,
+    takenDates: [],
     createdAt: new Date().toISOString()
   };
   
@@ -39,7 +49,7 @@ export const updateMedicine = async (id, data) => {
     return null;
   }
   
-  const allowedFields = ['medicineName', 'dosage', 'type', 'date', 'time', 'taken'];
+  const allowedFields = ['medicineName', 'dosage', 'type', 'date', 'endDate', 'time'];
   const updates = Object.fromEntries(
     Object.entries(data).filter(([field]) => allowedFields.includes(field))
   );
@@ -48,7 +58,24 @@ export const updateMedicine = async (id, data) => {
     updates.medicineName = data.name;
   }
 
-  await docRef.update(updates);
+  if ('taken' in data && data.actionDate) {
+    const docData = doc.data();
+    let takenDates = docData.takenDates || [];
+    
+    if (data.taken) {
+      if (!takenDates.includes(data.actionDate)) {
+        takenDates.push(data.actionDate);
+      }
+    } else {
+      takenDates = takenDates.filter(d => d !== data.actionDate);
+    }
+    updates.takenDates = takenDates;
+  }
+
+  if (Object.keys(updates).length > 0) {
+    await docRef.update(updates);
+  }
+  
   const updatedDoc = await docRef.get();
   return { id: updatedDoc.id, ...updatedDoc.data() };
 };

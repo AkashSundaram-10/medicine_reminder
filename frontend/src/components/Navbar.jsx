@@ -75,7 +75,7 @@ export default function Navbar() {
                 onClick={() => alert("User profile menu opened.")}
                 className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl bg-gradient-to-br from-blue-100 to-indigo-100 border-2 border-white shadow-md overflow-hidden cursor-pointer hover:scale-105 transition-transform shrink-0"
               >
-                <img src="https://ui-avatars.com/api/?name=Alex+Doe&background=3b82f6&color=fff" alt="User Avatar" className="w-full h-full object-cover" />
+                <img src="https://ui-avatars.com/api/?name=Akash+Sundaram&background=3b82f6&color=fff" alt="User Avatar" className="w-full h-full object-cover" />
               </div>
             </div>
           </div>

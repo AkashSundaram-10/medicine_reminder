@@ -66,7 +66,7 @@ export default function Dashboard() {
     });
 
     try {
-      await api.updateMedicineStatus(id, newStatus);
+      await api.updateMedicineStatus(id, newStatus, formatDate(currentDate));
     } catch (error) {
       console.error("Failed to update status", error);
       loadData(); // Revert on failure
@@ -85,7 +85,7 @@ export default function Dashboard() {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-6">
         <div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-slate-900 tracking-tight">
-            Good Morning, <br className="sm:hidden"/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Alex</span>
+            Good Morning, <br className="sm:hidden"/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Akash Sundaram</span>
           </h1>
           <p className="text-lg sm:text-xl text-slate-500 mt-2 sm:mt-3 font-medium">Your health journey is looking great today.</p>
         </div>
